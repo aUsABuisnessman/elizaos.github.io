@@ -17,6 +17,7 @@ export default {
   contributionStartDate: "2024-10-15",
   // Repositories to track
   repositories: [
+    // Core platform
     {
       owner: "elizaos",
       name: "eliza",
@@ -24,14 +25,31 @@ export default {
     },
     {
       owner: "elizaos",
-      name: "auto.fun",
-      defaultBranch: "develop",
-    },
-    {
-      owner: "elizaos",
       name: "elizaos.github.io",
       defaultBranch: "main",
     },
+    {
+      owner: "elizaos",
+      name: "docs",
+      defaultBranch: "main",
+    },
+    // Applications
+    {
+      owner: "elizaos",
+      name: "x402.elizaos.ai",
+      defaultBranch: "main",
+    },
+    {
+      owner: "elizaos",
+      name: "spartan",
+      defaultBranch: "main",
+    },
+    {
+      owner: "elizaos",
+      name: "jeju",
+      defaultBranch: "main",
+    },
+    // Plugins
     {
       owner: "elizaos-plugins",
       name: "plugin-solana",
@@ -41,6 +59,51 @@ export default {
       owner: "elizaos-plugins",
       name: "plugin-knowledge",
       defaultBranch: "1.x",
+    },
+    {
+      owner: "elizaos-plugins",
+      name: "plugin-chart",
+      defaultBranch: "main",
+    },
+    {
+      owner: "elizaos-plugins",
+      name: "plugin-analytics",
+      defaultBranch: "main",
+    },
+    {
+      owner: "elizaos-plugins",
+      name: "plugin-jupiter",
+      defaultBranch: "1.x",
+    },
+    {
+      owner: "elizaos-plugins",
+      name: "plugin-trust",
+      defaultBranch: "1.x",
+    },
+    {
+      owner: "elizaos-plugins",
+      name: "plugin-rolodex",
+      defaultBranch: "1.x",
+    },
+    {
+      owner: "elizaos-plugins",
+      name: "plugin-birdeye",
+      defaultBranch: "1.x",
+    },
+    {
+      owner: "elizaos-plugins",
+      name: "plugin-digitaltwin",
+      defaultBranch: "main",
+    },
+    {
+      owner: "elizaos-plugins",
+      name: "plugin-mysql",
+      defaultBranch: "main",
+    },
+    {
+      owner: "elizaos-plugins",
+      name: "plugin-elizaos-cloud",
+      defaultBranch: "main",
     },
     {
       owner: "elizaos-plugins",
@@ -152,6 +215,7 @@ export default {
     "graphite-app",
     "google-labs-jules[bot]",
     "cursor",
+    "claude",
   ],
 
   // Scoring rules - controls how different contribution types are valued
@@ -482,7 +546,7 @@ export default {
       month: process.env.LARGE_MODEL || "google/gemini-2.5-pro",
     },
     temperature: 0.1,
-    max_tokens: 2000,
+    max_tokens: 2400,
     endpoint: "https://openrouter.ai/api/v1/chat/completions",
     apiKey: openrouterApiKey || "",
     projectContext: `
