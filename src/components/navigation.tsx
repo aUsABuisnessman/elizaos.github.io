@@ -20,6 +20,7 @@ import {
   MoonIcon,
   ChevronDownIcon,
   Github,
+  Rss,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -208,7 +209,9 @@ export function Navigation() {
         <div className="flex items-center gap-6">
           <Button variant="none" size={"none"} asChild>
             <Link href="/" className="transition-opacity hover:opacity-80">
-              <h1 className="text-xl font-bold">ElizaOS</h1>
+              <h1 className="text-xl font-bold">
+                {process.env.NEXT_PUBLIC_SITE_NAME || "HiScores"}
+              </h1>
             </Link>
           </Button>
           <div className="hidden items-center gap-2 sm:flex">
@@ -217,6 +220,16 @@ export function Navigation() {
         </div>
 
         <div className="hidden items-center gap-4 sm:flex">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 text-muted-foreground hover:text-foreground"
+            asChild
+          >
+            <Link href="/rss.xml" target="_blank" title="RSS Feed">
+              <Rss className="h-4 w-4" />
+            </Link>
+          </Button>
           {!user ? (
             <>
               <AuthControls />
