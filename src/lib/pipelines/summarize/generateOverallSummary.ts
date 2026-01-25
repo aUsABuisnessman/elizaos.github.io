@@ -2,9 +2,18 @@ import { createStep, pipe, mapStep } from "../types";
 import { SummarizerPipelineContext } from "./context";
 import { generateOverallSummary } from "./aiOverallSummary";
 import { generateTimeIntervals } from "../generateTimeIntervals";
-import { IntervalType, TimeInterval, toDateString } from "@/lib/date-utils";
+import {
+  IntervalType,
+  RepoIntervalType,
+  TimeInterval,
+  toDateString,
+} from "@/lib/date-utils";
 import { getAllRepoSummariesForInterval } from "./queries";
-import { getOverallSummaryFilePath, writeToFile } from "@/lib/fsHelpers";
+import {
+  getOverallSummaryFilePath,
+  writeToFile,
+  writeSummaryToAPI,
+} from "@/lib/fsHelpers";
 import { storeOverallSummary } from "./mutations";
 import { db } from "@/lib/data/db";
 import { overallSummaries } from "@/lib/data/schema";
@@ -15,7 +24,7 @@ import { and, eq } from "drizzle-orm";
  */
 async function checkExistingOverallSummary(
   date: string | Date,
-  intervalType: IntervalType,
+  intervalType: RepoIntervalType,
 ): Promise<boolean> {
   // Check database
   const existingSummary = await db.query.overallSummaries.findFirst({
@@ -49,7 +58,7 @@ export const generateOverallSummaryForInterval = createStep(
       if (!overwrite) {
         const summaryExists = await checkExistingOverallSummary(
           startDate,
-          intervalType,
+          intervalType as RepoIntervalType,
         );
         if (summaryExists) {
           intervalLogger?.debug(
@@ -60,42 +69,60 @@ export const generateOverallSummaryForInterval = createStep(
       }
 
       const repoSummaries = await getAllRepoSummariesForInterval(interval);
+
+      // Generate summary even if no repo summaries exist
+      let summary: string;
       if (repoSummaries.length === 0) {
         intervalLogger?.debug(
-          `No repository summaries found for ${intervalType} of ${startDate}, skipping overall summary generation.`,
+          `No repository summaries found for ${intervalType} of ${startDate}, generating no-activity summary.`,
         );
-        return null;
-      }
-
-      const summary = await generateOverallSummary(
-        repoSummaries,
-        aiSummaryConfig,
-        { startDate },
-        intervalType,
-      );
-
-      if (!summary) {
-        intervalLogger?.debug(
-          `Overall summary generation resulted in no content for ${startDate}, skipping storage.`,
+        // Generate a simple no-activity message instead of skipping
+        summary = `No activity recorded for ${startDate}.`;
+      } else {
+        const generatedSummary = await generateOverallSummary(
+          repoSummaries,
+          aiSummaryConfig,
+          { startDate },
+          intervalType as RepoIntervalType,
         );
-        return;
+
+        if (!generatedSummary) {
+          intervalLogger?.debug(
+            `Overall summary generation resulted in no content for ${startDate}, skipping storage.`,
+          );
+          return;
+        }
+        summary = generatedSummary;
       }
 
       // Store the summary in database
-      await storeOverallSummary(startDate, summary, intervalType);
+      await storeOverallSummary(
+        startDate,
+        summary,
+        intervalType as RepoIntervalType,
+      );
 
       // Export summary as markdown file
-      const filename = `${startDate}.md`;
-      const outputPath = getOverallSummaryFilePath(
+      const mdFilename = `${startDate}.md`;
+      const mdPath = getOverallSummaryFilePath(
         outputDir,
         intervalType,
-        filename,
+        mdFilename,
       );
-      await writeToFile(outputPath, summary);
+      await writeToFile(mdPath, summary);
+
+      // Export summary as JSON API artifact
+      await writeSummaryToAPI(
+        outputDir,
+        "overall",
+        intervalType,
+        startDate,
+        summary,
+      );
 
       intervalLogger?.info(
         `Generated and exported overall ${intervalType} summary`,
-        { outputPath },
+        { mdPath },
       );
 
       return summary;

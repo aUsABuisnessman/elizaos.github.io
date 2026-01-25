@@ -267,9 +267,210 @@ bun run pipeline summarize -t contributors --daily --weekly
 
 # Generate summaries with verbose logging
 bun run pipeline summarize -t repository -v
+
+# Generate summaries for a specific contributor only
+bun run pipeline summarize -t contributors -u username
 ```
 
 By default, the summarize command wont regenerate summaries that already exist for a given day. To regenerate summaries, you can pass in the -f/--force flag.
+
+#### Lifetime Summaries
+
+Generate all-time contributor briefings with strategic insights (manual generation only, not automated):
+
+```bash
+# Single user (recommended for testing)
+bun run pipeline summarize -t contributors --lifetime -u username
+
+# All users (expensive - generates AI summaries for every contributor)
+bun run pipeline summarize -t contributors --lifetime --force
+```
+
+**Note:** Lifetime summaries are memory-intensive and make many AI calls. Always use the `-u/--username` filter when testing prompt changes or debugging.
+
+### Static JSON API
+
+The pipeline generates static JSON API endpoints that can be consumed by external tools, dashboards, or AI agents. These files are generated during pipeline execution and served as static files.
+
+#### Leaderboard API
+
+```bash
+# Generate leaderboard API endpoints
+bun run pipeline export-leaderboard
+
+# With custom limit (default 100, 0 = unlimited)
+bun run pipeline export-leaderboard --limit 50
+
+# Output to custom directory
+bun run pipeline export-leaderboard --output-dir ./custom-dir/
+```
+
+**Endpoints:**
+
+| Endpoint                                    | Description                       |
+| ------------------------------------------- | --------------------------------- |
+| `/api/leaderboard-monthly.json`             | Current month's leaderboard       |
+| `/api/leaderboard-weekly.json`              | Current week's leaderboard        |
+| `/api/leaderboard-lifetime.json`            | All-time leaderboard              |
+| `/api/contributors/{username}/profile.json` | Complete character sheet for user |
+| `/api/index.json`                           | API discovery endpoint            |
+
+**API Base URL:** `https://{your-domain}/api/`
+
+For GitHub Pages deployments, your base URL follows this pattern:
+
+- **Org/user site** (`username.github.io` repo): `https://{username}.github.io/api/`
+- **Project site** (any other repo): `https://{username}.github.io/{repo-name}/api/`
+
+**Response structure:**
+
+```json
+{
+  "version": "1.0",
+  "period": "monthly",
+  "startDate": "2025-01-01",
+  "endDate": "2025-01-31",
+  "generatedAt": "2025-01-15T12:00:00Z",
+  "totalUsers": 150,
+  "leaderboard": [
+    {
+      "rank": 1,
+      "username": "contributor1",
+      "avatarUrl": "https://...",
+      "characterClass": "Maintainer",
+      "tier": "elite",
+      "score": 1250,
+      "prScore": 800,
+      "issueScore": 200,
+      "reviewScore": 150,
+      "commentScore": 100,
+      "wallets": { "solana": "...", "ethereum": "..." },
+      "focusAreas": [
+        {
+          "tag": "core",
+          "score": 565.5,
+          "percentage": 45.2,
+          "rank": 3,
+          "totalInArea": 45
+        }
+      ],
+      "scoreBreakdown": {
+        "total": 1250,
+        "tier": "elite",
+        "percentile": 95.3,
+        "characterClass": "Maintainer",
+        "distribution": {
+          "prs": { "score": 800, "percentage": 64.0, "label": "Builder" },
+          "issues": { "score": 200, "percentage": 16.0, "label": "Hunter" },
+          "reviews": { "score": 150, "percentage": 12.0, "label": "Reviews" },
+          "comments": { "score": 100, "percentage": 8.0, "label": "Engagement" }
+        }
+      },
+      "achievements": [
+        { "type": "level", "tier": "elite", "earnedAt": "2024-11-15T10:00:00Z" }
+      ],
+      "profile": {
+        "contributorType": "maintainer",
+        "prMergeRate": 93.3,
+        "reviewActivity": "high"
+      },
+      "links": {
+        "profile": "https://elizaos.github.io/profile/contributor1",
+        "profileApi": "https://elizaos.github.io/api/contributors/contributor1/profile.json",
+        "summary": "https://elizaos.github.io/api/summaries/contributors/contributor1/day/latest.json",
+        "github": "https://github.com/contributor1"
+      }
+    }
+  ]
+}
+```
+
+**Character System:** Leaderboard entries include MMORPG-style progression:
+
+- **Tiers:** beginner → regular → active → veteran → elite → legend (based on total score)
+- **Classes:** Builder (PRs), Hunter (Issues), Scribe (Docs), Maintainer (Builder + Reviews), Pathfinder (Builder + Hunter)
+- **Focus Areas:** Top 3 expertise tags with global rankings (e.g., "#3 in core out of 45 contributors")
+- **Percentile:** Shows what % of all contributors this user outscores
+
+See the [API documentation page](/api) for complete schemas and examples.
+
+#### Summary API
+
+Summaries are generated alongside markdown files during the `summarize` command. JSON API artifacts include metadata for caching and validation.
+
+**Endpoints:**
+
+| Endpoint Pattern                                                | Description                         |
+| --------------------------------------------------------------- | ----------------------------------- |
+| `/api/summaries/overall/{interval}/{date}.json`                 | Overall summary for a specific date |
+| `/api/summaries/overall/{interval}/latest.json`                 | Most recent overall summary         |
+| `/api/summaries/overall/{interval}/index.json`                  | Index of all overall summaries      |
+| `/api/summaries/repos/{owner}_{repo}/{interval}/{date}.json`    | Repository summary                  |
+| `/api/summaries/repos/{owner}_{repo}/{interval}/latest.json`    | Most recent repo summary            |
+| `/api/summaries/repos/{owner}_{repo}/{interval}/index.json`     | Index of all repo summaries         |
+| `/api/summaries/contributors/{username}/{interval}/{date}.json` | Contributor summary                 |
+| `/api/summaries/contributors/{username}/{interval}/latest.json` | Most recent contributor summary     |
+| `/api/summaries/contributors/{username}/{interval}/index.json`  | Index of contributor summaries      |
+| `/api/summaries/contributors/{username}/lifetime.json`          | All-time contributor summary        |
+
+Where `{interval}` is one of: `day`, `week`, `month` (for overall/repos/contributors), or `lifetime` (contributors only)
+
+**Response structure:**
+
+```json
+{
+  "version": "1.0",
+  "type": "overall",
+  "interval": "day",
+  "date": "2025-01-15",
+  "generatedAt": "2025-01-15T23:00:00Z",
+  "sourceLastUpdated": "2025-01-15T23:00:00Z",
+  "contentFormat": "markdown",
+  "contentHash": "sha256...",
+  "entity": { "repoId": "owner/repo" },
+  "content": "# Summary\n\n..."
+}
+```
+
+**Index structure:**
+
+```json
+{
+  "version": "1.0",
+  "type": "overall",
+  "interval": "day",
+  "generatedAt": "2025-01-15T23:00:00Z",
+  "items": [
+    {
+      "date": "2025-01-15",
+      "sourceLastUpdated": "...",
+      "contentHash": "...",
+      "path": "2025-01-15.json"
+    }
+  ]
+}
+```
+
+#### Backfilling JSON API
+
+If you have existing summaries in the database that need JSON export (e.g., from before this feature was added):
+
+```bash
+# Export all summaries to JSON
+bun run pipeline export-summaries
+
+# Export specific type
+bun run pipeline export-summaries -t overall
+bun run pipeline export-summaries -t repository
+bun run pipeline export-summaries -t contributor
+
+# Export specific interval
+bun run pipeline export-summaries --interval day
+bun run pipeline export-summaries --interval week
+
+# Dry run to see what would be exported
+bun run pipeline export-summaries --dry-run
+```
 
 ### Database Management
 
@@ -317,8 +518,19 @@ The project uses GitHub Actions for automated data processing, summary generatio
 
   - Runs the full `ingest → process → export → summarize` pipeline chain
   - Maintains data in a dedicated `_data` branch
-  - Can be manually triggered from Github Actions tab with custom date ranges or forced regeneration
+  - Can be manually triggered from Github Actions tab with custom options:
+    - Date ranges and forced regeneration
+    - Interval selection (daily/weekly/monthly)
+    - Lifetime summary generation (opt-in, manual only)
+    - Username filtering for single-user testing
   - Runs repository and overall summaries daily, but only runs contributor summaries on Sundays
+
+- **Generate Summaries (`generate-summaries.yml`)**: AI summary generation workflow (runs after pipeline completion or manually)
+
+  - Can be manually triggered for selective summary generation
+  - Supports lifetime summary generation with `lifetime_summaries` checkbox
+  - Allows filtering to specific username with `username` input field
+  - Useful for testing prompt changes or regenerating specific summaries
 
 - **Deploy to GitHub Pages (`deploy.yml`)**: Builds and deploys the site
 

@@ -275,36 +275,45 @@ const VirtualizedLeaderboardList = ({
   });
 
   return (
-    <div ref={listRef} className="divide-y rounded-lg border">
-      <div
-        style={{
-          height: `${virtualizer.getTotalSize()}px`,
-          width: "100%",
-          position: "relative",
-        }}
-      >
-        {virtualizer.getVirtualItems().map((virtualRow) => (
-          <div
-            key={virtualRow.key}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: `${virtualRow.size}px`,
-              transform: `translateY(${
-                virtualRow.start - virtualizer.options.scrollMargin
-              }px)`,
-            }}
-          >
-            <LeaderboardCard
-              user={users[virtualRow.index]}
-              rank={(currentPage - 1) * itemsPerPage + virtualRow.index + 1}
-              onSkillClick={onSkillClick}
-              showScore={showScore}
-            />
-          </div>
-        ))}
+    <div ref={listRef} className="overflow-hidden rounded-lg border">
+      {/* Header row */}
+      <div className="grid h-10 grid-cols-[3rem_2fr_1fr_1fr] items-center border-b bg-muted/50 px-4 text-sm font-medium text-muted-foreground">
+        <span>#</span>
+        <span>Contributor</span>
+        <span className="text-center">Level</span>
+        <span className="text-right">XP</span>
+      </div>
+      <div className="divide-y">
+        <div
+          style={{
+            height: `${virtualizer.getTotalSize()}px`,
+            width: "100%",
+            position: "relative",
+          }}
+        >
+          {virtualizer.getVirtualItems().map((virtualRow) => (
+            <div
+              key={virtualRow.key}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${
+                  virtualRow.start - virtualizer.options.scrollMargin
+                }px)`,
+              }}
+            >
+              <LeaderboardCard
+                user={users[virtualRow.index]}
+                rank={(currentPage - 1) * itemsPerPage + virtualRow.index + 1}
+                onSkillClick={onSkillClick}
+                showScore={showScore}
+              />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

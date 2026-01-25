@@ -5,11 +5,20 @@ import {
   generateAggregatedRepoSummary,
 } from "./aiRepoSummary";
 import { generateTimeIntervals } from "../generateTimeIntervals";
-import { IntervalType, TimeInterval, toDateString } from "@/lib/date-utils";
+import {
+  IntervalType,
+  RepoIntervalType,
+  TimeInterval,
+  toDateString,
+} from "@/lib/date-utils";
 import { storeRepoSummary } from "./mutations";
 import { isNotNullOrUndefined } from "@/lib/typeHelpers";
 import { getRepoMetrics } from "../export/queries";
-import { getRepoFilePath, writeToFile } from "@/lib/fsHelpers";
+import {
+  getRepoFilePath,
+  writeToFile,
+  writeSummaryToAPI,
+} from "@/lib/fsHelpers";
 import { getRepoSummariesForInterval } from "./queries";
 import { db } from "@/lib/data/db";
 import { repoSummaries } from "@/lib/data/schema";
@@ -22,7 +31,7 @@ import { getActiveReposForInterval } from "./getActiveRepos";
 async function checkExistingSummary(
   repoId: string,
   date: string | Date,
-  intervalType: IntervalType,
+  intervalType: RepoIntervalType,
 ): Promise<boolean> {
   const summary = await db.query.repoSummaries.findFirst({
     where: and(
@@ -69,7 +78,7 @@ export const generateDailyRepoSummaryForInterval = createStep(
         const summaryExists = await checkExistingSummary(
           repoId,
           dateRange.startDate,
-          interval.intervalType,
+          interval.intervalType as RepoIntervalType,
         );
         if (summaryExists) {
           intervalLogger?.debug(
@@ -90,7 +99,7 @@ export const generateDailyRepoSummaryForInterval = createStep(
         metrics,
         aiSummaryConfig,
         dateRange,
-        interval.intervalType,
+        interval.intervalType as RepoIntervalType,
       );
 
       if (!summary) {
@@ -105,25 +114,36 @@ export const generateDailyRepoSummaryForInterval = createStep(
         repoId,
         toDateString(interval.intervalStart),
         summary,
-        interval.intervalType,
+        interval.intervalType as RepoIntervalType,
       );
 
-      // Export summary as markdown file if outputDir is configured
-      const filename = `${toDateString(interval.intervalStart)}.md`;
-      const outputPath = getRepoFilePath(
+      // Export summary as markdown file
+      const startDate = toDateString(interval.intervalStart);
+      const mdFilename = `${startDate}.md`;
+      const mdPath = getRepoFilePath(
         context.outputDir,
         repoId,
         "summaries",
         interval.intervalType,
-        filename,
+        mdFilename,
       );
-      await writeToFile(outputPath, summary);
+      await writeToFile(mdPath, summary);
+
+      // Export summary as JSON API artifact
+      const [owner, repo] = repoId.split("/");
+      await writeSummaryToAPI(
+        context.outputDir,
+        "repository",
+        interval.intervalType,
+        startDate,
+        summary,
+        repoId,
+        { repoId, owner, repo },
+      );
 
       intervalLogger?.info(
         `Generated and exported ${interval.intervalType} summary for repo ${repoId}`,
-        {
-          outputPath,
-        },
+        { mdPath },
       );
 
       return summary;
@@ -216,6 +236,18 @@ export const generateAggregatedRepoSummaryForInterval = createStep(
         filename,
       );
       await writeToFile(outputPath, summary);
+
+      // Export summary as JSON API artifact
+      const [owner, repo] = repoId.split("/");
+      await writeSummaryToAPI(
+        outputDir,
+        "repository",
+        intervalType,
+        startDate,
+        summary,
+        repoId,
+        { repoId, owner, repo },
+      );
 
       intervalLogger?.info(
         `Generated and exported ${intervalType} aggregated summary for repo ${repoId}`,

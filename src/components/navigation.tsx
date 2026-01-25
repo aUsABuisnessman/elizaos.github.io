@@ -34,6 +34,7 @@ export function Navigation() {
   const isLeaderboardActive = pathname === "/leaderboard";
   const isAboutActive = pathname === "/about";
   const isReposActive = pathname.startsWith("/repos");
+  const isApiActive = pathname === "/api";
 
   const navLinksForMenuJsx = (
     <>
@@ -75,6 +76,16 @@ export function Navigation() {
           )}
         >
           Leaderboard
+        </Link>
+      </DropdownMenuItem>
+      <DropdownMenuItem asChild className="py-3 text-base">
+        <Link
+          href="/api"
+          className={cn(
+            "w-full justify-start rounded-md px-2 text-base text-muted-foreground",
+          )}
+        >
+          API
         </Link>
       </DropdownMenuItem>
     </>
@@ -120,6 +131,19 @@ export function Navigation() {
         asChild
       >
         <Link href="/leaderboard">Leaderboard</Link>
+      </Button>
+      <Button
+        variant="ghost"
+        size={"sm"}
+        className={cn(
+          "rounded-full px-4 text-sm font-medium",
+          isApiActive
+            ? "bg-muted hover:bg-muted/80"
+            : "text-muted-foreground hover:bg-transparent",
+        )}
+        asChild
+      >
+        <Link href="/api">API</Link>
       </Button>
     </>
   );
@@ -220,6 +244,22 @@ export function Navigation() {
         </div>
 
         <div className="hidden items-center gap-4 sm:flex">
+          {process.env.NEXT_PUBLIC_GITHUB_REPO && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-muted-foreground hover:text-foreground"
+              asChild
+            >
+              <Link
+                href={`https://github.com/${process.env.NEXT_PUBLIC_GITHUB_REPO}`}
+                target="_blank"
+                title="GitHub Repository"
+              >
+                <Github className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
